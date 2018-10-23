@@ -12,21 +12,21 @@ const globals = {
     'rxjs/operators': 'Rx.Observable.prototype',
     'rxjs/observable/timer': 'Rx.Observable.prototype',
 
-    jsrsasign: 'jsrsasign',
+    'integrator-jsrsasign': 'integrator.jsrsasign',
     buffer: 'buffer',
 };
 
 export default {
-    entry: './dist/modules/angular-auth-oidc-client.es5.js',
-    dest: './dist/bundles/angular-auth-oidc-client.umd.js',
+    entry: './dist/modules/integrator-angular-auth-oidc-client.es5.js',
+    dest: './dist/bundles/integrator-angular-auth-oidc-client.umd.js',
     format: 'umd',
     exports: 'named',
-    moduleName: 'ng.angularAuthOidcClient',
+    moduleName: 'ng.integratorAngularAuthOidcClient',
     plugins: [
         resolve(),
         commonjs({
             namedExports: {
-                'node_modules/jsrsasign/lib/jsrsasign.js': ['KJUR', 'KEYUTIL', 'hextob64u']
+                'node_modules/integrator-jsrsasign/lib/integrator-jsrsasign.js': ['KJUR', 'KEYUTIL', 'hextob64u']
             }
         })
     ],

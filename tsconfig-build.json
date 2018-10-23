@@ -22,6 +22,6 @@
         "annotateForClosureCompiler": true,
         "strictMetadataEmit": true,
         "flatModuleOutFile": "index.js",
-        "flatModuleId": "angular-auth-oidc-client"
+        "flatModuleId": "integrator-angular-auth-oidc-client"
     }
 }

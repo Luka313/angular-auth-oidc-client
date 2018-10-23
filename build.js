@@ -3,7 +3,7 @@
 require('shelljs/global');
 const chalk = require('chalk');
 
-const PACKAGE = `angular-auth-oidc-client`;
+const PACKAGE = `integrator-angular-auth-oidc-client`;
 const NPM_DIR = `dist`;
 const MODULES_DIR = `${NPM_DIR}/modules`;
 const BUNDLES_DIR = `${NPM_DIR}/bundles`;
@@ -50,11 +50,14 @@ exec(`node scripts/map-sources -f ${BUNDLES_DIR}/${PACKAGE}.umd.js`);
 
 echo(`Minifying`);
 cd(`${BUNDLES_DIR}`);
+echo(`Otvorio bundles dir`);
 exec(
     `uglifyjs -c --screw-ie8 --comments -o ${PACKAGE}.umd.min.js --source-map ${PACKAGE}.umd.min.js.map --source-map-include-sources ${PACKAGE}.umd.js`,
-    { silent: true }
+    { silent: false }
 );
+echo(`Prvi exec`);
 exec(`node ../../scripts/map-sources -f ${PACKAGE}.umd.min.js`);
+echo(`Drugi exec`);
 cd(`..`);
 cd(`..`);
 
