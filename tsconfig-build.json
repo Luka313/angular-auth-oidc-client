@@ -28,7 +28,7 @@
         "skipTemplateCodegen": true,
         "annotateForClosureCompiler": true,
         "strictMetadataEmit": true,
-        "flatModuleOutFile": "angular-auth-oidc-client.js",
-        "flatModuleId": "angular-auth-oidc-client"
+        "flatModuleOutFile": "integrator-angular-auth-oidc-client.js",
+        "flatModuleId": "integrator-angular-auth-oidc-client"
     }
 }

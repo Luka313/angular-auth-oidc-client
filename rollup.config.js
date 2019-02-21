@@ -9,7 +9,7 @@ const globals = {
     '@angular/common/http': 'ng.common.http',
     rxjs: 'rxjs',
     'rxjs/operators': 'rxjs.operators',
-    jsrsasign: 'jsrsasign',
+    'integrator-jsrsasign': 'integrator.jsrsasign',
     buffer: 'buffer',
 };
 
@@ -21,7 +21,7 @@ export default {
     },
     output: {
         format: 'umd',
-        name: 'ng.angularAuthOidcClient',
+        name: 'ng.integratorAngularAuthOidcClient',
         globals: globals,
         sourcemap: true,
         exports: 'named',
@@ -31,7 +31,7 @@ export default {
         resolve(),
         commonjs({
             namedExports: {
-                'node_modules/jsrsasign/lib/jsrsasign.js': ['KJUR', 'KEYUTIL', 'hextob64u'],
+                'node_modules/integrator-jsrsasign/lib/integrator-jsrsasign.js': ['KJUR', 'KEYUTIL', 'hextob64u'],
             },
         }),
     ],

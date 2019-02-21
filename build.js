@@ -78,7 +78,7 @@ shell.echo(`Minifying`);
 shell.cd(`${BUNDLES_DIR}`);
 if (
     shell.exec(
-        `uglifyjs ${PACKAGE}.umd.js -c --comments -o ${PACKAGE}.umd.min.js --source-map "includeSources=true,content='${PACKAGE}.umd.js.map',filename='${PACKAGE}.umd.min.js.map'"`
+        `uglifyjs ${PACKAGE}.umd.js -c --screw-ie8 --comments -o ${PACKAGE}.umd.min.js --source-map "includeSources=true,content='${PACKAGE}.umd.js.map',filename='${PACKAGE}.umd.min.js.map'"`
     ).code !== 0
 ) {
     shell.echo(chalk.red(`Error: Minifying failed`));

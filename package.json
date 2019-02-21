@@ -1,7 +1,7 @@
 {
     "name": "integrator-angular-auth-oidc-client",
     "private": true,
-    "version": "1.2.0",
+    "version": "2.0.0",
     "description": "An OpenID Connect Code Flow with PKCE,Implicit Flow client for Angular. Adapted for Integrator",
     "main": "./bundles/integrator-angular-auth-oidc-client.umd.js",
     "module": "./fesm5/integrator-angular-auth-oidc-client.js",
