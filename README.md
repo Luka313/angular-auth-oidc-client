@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/damienbod/angular-auth-oidc-client.svg?branch=master)](https://travis-ci.org/damienbod/angular-auth-oidc-client) [![npm](https://img.shields.io/npm/v/angular-auth-oidc-client.svg)](https://www.npmjs.com/package/angular-auth-oidc-client) [![npm](https://img.shields.io/npm/dm/angular-auth-oidc-client.svg)](https://www.npmjs.com/package/angular-auth-oidc-client) [![npm](https://img.shields.io/npm/l/angular-auth-oidc-client.svg)](https://www.npmjs.com/package/angular-auth-oidc-client)
 
-> OpenID Connect Implicit Flow
+> OpenID Code Flow with PKCE, OpenID Connect Implicit Flow
 
 ## OpenID Certification
 
@@ -13,7 +13,8 @@ This library is <a href="http://openid.net/certification/#RPs">certified</a> by 
 ## Features
 
 -   version 4.1.0 Angular 4 to Angular 5.2.10, Version 6.0.0, Angular 6 onwards
--   Supports OpenID Implicit Flow http://openid.net/specs/openid-connect-implicit-1_0.html
+-   Supports OpenID Connect Code Flow with PKCE
+-   Supports OpenID Connect Implicit Flow http://openid.net/specs/openid-connect-implicit-1_0.html
 -   Complete client side validation for REQUIRED features
 -   OpenID Connect Session Management 1.0 http://openid.net/specs/openid-connect-session-1_0.html
 -   AOT build
@@ -38,7 +39,7 @@ or with yarn
 or you can add the npm package to your package.json
 
 ```typescript
- "angular-auth-oidc-client": "7.0.2"
+ "angular-auth-oidc-client": "9.0.2"
 ```
 
 and type
@@ -93,7 +94,7 @@ export function loadConfig(oidcConfigService: OidcConfigService) {
 })
 ```
 
-Set the AuthConfiguration properties to match the server configuration. At present only the 'id_token token' or the 'id_token' flows are supported.
+Set the AuthConfiguration properties to match the server configuration. At present only the 'code' with PKCE, 'id_token token' or the 'id_token' flows are supported.
 
 ```typescript
 export class AppModule {
@@ -116,7 +117,7 @@ export class AppModule {
             openIDImplicitFlowConfiguration.start_checksession = this.oidcConfigService.clientConfiguration.start_checksession;
             openIDImplicitFlowConfiguration.silent_renew = this.oidcConfigService.clientConfiguration.silent_renew;
             openIDImplicitFlowConfiguration.silent_renew_url = this.oidcConfigService.clientConfiguration.silent_renew_url;
-            openIDImplicitFlowConfiguration.post_login_route = this.oidcConfigService.clientConfiguration.startup_route;
+            openIDImplicitFlowConfiguration.post_login_route = this.oidcConfigService.clientConfiguration.post_login_route;
             // HTTP 403
             openIDImplicitFlowConfiguration.forbidden_route = this.oidcConfigService.clientConfiguration.forbidden_route;
             // HTTP 401
@@ -140,6 +141,57 @@ export class AppModule {
     }
 }
 ```
+
+## Code Flow with PKCE
+
+Create the login, logout component and use the oidcSecurityService
+
+```typescript
+import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Subscription } from 'rxjs/Subscription';
+import { OidcSecurityService } from 'angular-auth-oidc-client';
+
+@Component({
+    selector: 'my-app',
+    templateUrl: 'app.component.html',
+})
+export class AppComponent implements OnInit, OnDestroy {
+    constructor(public oidcSecurityService: OidcSecurityService) {
+	this.oidcSecurityService.getIsModuleSetup().pipe(
+	    filter((isModuleSetup: boolean) => isModuleSetup),
+	    take(1)
+	).subscribe((isModuleSetup: boolean) => {
+	    this.doCallbackLogicIfRequired();
+	});
+    }
+
+    ngOnInit() {}
+
+    ngOnDestroy(): void {}
+
+    login() {
+  
+        // if you need to add extra parameters to the login
+        // let culture = 'de-CH';
+        // this.oidcSecurityService.setCustomRequestParameters({ 'ui_locales': culture });
+	
+        this.oidcSecurityService.authorize();
+    }
+
+    logout() {
+        this.oidcSecurityService.logoff();
+    }
+
+    private doCallbackLogicIfRequired() {
+        console.log(window.location);
+        // Will do a callback, if the url has a code and state parameter.
+        this.oidcSecurityService.authorizedCallbackWithCode(window.location.toString());
+    }
+}
+
+```
+
+## Implicit Flow
 
 Create the login, logout component and use the oidcSecurityService
 
@@ -181,7 +233,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
     private doCallbackLogicIfRequired() {
         if (window.location.hash) {
-            this.oidcSecurityService.authorizedCallback();
+            this.oidcSecurityService.authorizedImplicitFlowCallback();
         }
     }
 }
@@ -223,13 +275,13 @@ You can add any configurations to this json, as long as the stsServer is present
 	"stsServer":"https://localhost:44318",
 	"redirect_url":"https://localhost:44311",
 	"client_id":"angularclient",
-	"response_type":"id_token token",
+	"response_type":"code", // "id_token token"
 	"scope":"dataEventRecords securedFiles openid profile",
 	"post_logout_redirect_uri":"https://localhost:44311",
 	"start_checksession":true,
 	"silent_renew":true,
 	"silent_renew_url":"https://localhost:44311/silent-renew.html"
-	"startup_route":"/dataeventrecords",
+	"post_login_route":"/home",
 	"forbidden_route":"/forbidden",
 	"unauthorized_route":"/unauthorized",
 	"log_console_warning_active":true,
@@ -239,6 +291,9 @@ You can add any configurations to this json, as long as the stsServer is present
 	"apiFileServer":"https://localhost:44378/"
 }
 ```
+
+See [Auth documentation](https://github.com/damienbod/angular-auth-oidc-client/blob/master/API_DOCUMENTATION.md#authconfiguration) 
+for the detail of each field.
 
 ## Using without APP_INITIALIZER
 
@@ -252,7 +307,7 @@ export class AppModule {
         // The Client MUST validate that the aud (audience) Claim contains its client_id value registered at the Issuer identified by the iss (issuer) Claim as an audience.
         // The ID Token MUST be rejected if the ID Token does not list the Client as a valid audience, or if it contains additional audiences not trusted by the Client.
         openIDImplicitFlowConfiguration.client_id = 'singleapp';
-        openIDImplicitFlowConfiguration.response_type = 'id_token token';
+        openIDImplicitFlowConfiguration.response_type = 'code'; // 'id_token token' Implicit Flow
         openIDImplicitFlowConfiguration.scope = 'dataEventRecords openid';
         openIDImplicitFlowConfiguration.post_logout_redirect_uri =
             'https://localhost:44363/Unauthorized';
@@ -420,9 +475,12 @@ export class AuthInterceptor implements HttpInterceptor {
 
 ## Authorizing in a popup or iframe
 
-You can call the Provider's authorization endpoint in a popup or iframe instead of navigating to it in the app's parent window. This allows you to have the Provider's consent prompt display in a popup window to avoid unloading and reloading the app, or to authorize the user silently by loading the endpoint in a hidden iframe if that supported by the Provider.
+You can call the Provider's authorization endpoint in a popup or iframe instead of navigating to it in the app's parent window. 
+This allows you to have the Provider's consent prompt display in a popup window to avoid unloading and reloading the app, 
+or to authorize the user silently by loading the endpoint in a hidden iframe if that supported by the Provider.
 
-To get the fully-formed authorization URL, pass a handler function to `OidcSecurityService.authorize` (this will also prevent the default behavior of loading the authorization endpoint in the current window):
+To get the fully-formed authorization URL, pass a handler function to `OidcSecurityService.authorize` 
+(this will also prevent the default behavior of loading the authorization endpoint in the current window):
 
 ```typescript
 login() {
@@ -435,11 +493,27 @@ login() {
 
 ## Silent Renew
 
-When silent renew is enabled, a DOM event will be automatically installed in the application's host window. The event `oidc-silent-renew-message` accepts a `CustomEvent` instance with the token returned from the OAuth server in its `detail` field.
+When silent renew is enabled, a DOM event will be automatically installed in the application's host window. 
+The event `oidc-silent-renew-message` accepts a `CustomEvent` instance with the token returned from the OAuth server 
+in its `detail` field.
 The event handler will send this token to the authorization callback and complete the validation.
 
 Point the `silent_renew_url` property to an HTML file which contains the following script element to enable authorization.
 
+Code Flow with PKCE
+```
+<script>
+	window.onload = function () {
+		/* The parent window hosts the Angular application */
+		var parent = window.parent;
+		/* Send the id_token information to the oidc message handler */
+		var event = new CustomEvent('oidc-silent-renew-message', { detail: window.location });
+		parent.dispatchEvent(event);
+	};
+</script>
+```
+
+Implicit Flow
 ```
 <script>
     window.onload = function () {
@@ -451,11 +525,31 @@ Point the `silent_renew_url` property to an HTML file which contains the followi
 };
 </script>
 ```
-When silent renew is enabled, `getIsAuthorized()` will attempt to perform a renew before returning the authorization state. This allows the application to authorize a user, that is already authenticated, without redirects.
+
+When silent renew is enabled, `getIsAuthorized()` will attempt to perform a renew before returning the authorization state. 
+This allows the application to authorize a user, that is already authenticated, without redirects.
+
+Silent renew requires CSP configuration, see next section.
 
 ## X-Frame-Options / CSP ancestor / different domains
 
-If deploying the client application and the STS server application with 2 different domains, the X-Frame-Options HTTPS header needs to allow all iframes. Then use the CSP HTTPS header to only allow the required domains. The silent renew requires this.
+If deploying the client application and the STS server application with 2 different domains, 
+the X-Frame-Options HTTPS header needs to allow all iframes. Then use the CSP HTTPS header to only allow the required domains. 
+**The silent renew requires this.**
+
+Add this header to responses from the server that serves your SPA:
+```
+Content-Security-Policy: script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data:;font-src 'self';frame-ancestors 'self' https://localhost:44318;block-all-mixed-content
+```
+where `https://localhost:44318` is the address of your STS server.
+
+e.g. if you use NginX to serve your Angular application, it would be 
+```
+http {
+  server {
+    ...
+    add_header Content-Security-Policy "script-src 'self' 'unsafe-inline';style-src 'self' 'unsafe-inline';img-src 'self' data:;font-src 'self';frame-ancestors 'self' https://localhost:44318;block-all-mixed-content";
+``` 
 
 ## Examples using:
 

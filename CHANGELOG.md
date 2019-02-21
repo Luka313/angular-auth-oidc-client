@@ -1,5 +1,49 @@
 ## angular-auth-oidc-client Changelog
 
+<a name="2019-02-01"></a>
+### 2019-02-01 version 9.0.2
+* bug fix at_hash is optional for code flow
+* removing session_state check from code flow response
+
+<a name="2019-01-11"></a>
+### 2019-01-11 version 9.0.1
+* Validation state in code callback redirect
+* Make it possible to turn off history clean up, so that the angular state is preserved.
+
+<a name="2019-01-08"></a>
+### 2019-01-08 version 9.0.0
+* Support for OpenID Connect Code Flow with PKCE
+
+### Breaking changes:
+
+Implicit flow callback renamed from authorizedCallback() to authorizedImplicitFlowCallback()
+
+<a name="2018-11-16"></a>
+### 2018-11-16 version 8.0.3
+* Changed iframe to avoid changing history state for repeated silent token renewals
+* make it possible to turn the iss validation off per configuration
+* reset history after OIDC callback with tokens
+
+<a name="2018-11-07"></a>
+### 2018-11-07 version 8.0.2
+* When `logOff()` is called storage should be cleared before emitting an authorization event.
+* AuthConfiguration object will now always return false for `start_checksession and silent_renew` properties when not running on a browser platform.
+
+<a name="2018-11-02"></a>
+### 2018-11-02 version 8.0.1
+* Adding an `onConfigurationChange` Observable to `OidcSecurityService
+
+<a name="2018-10-31"></a>
+### 2018-10-31 version 8.0.0
+* replaced eventemitters with Subjects/Observables and updated and docs
+* Optional url handler for logoff function 
+* silent_renew is now off by default (false). 
+* Fix for when token contains multiple dashes or underscores
+
+<a name="2018-10-24"></a>
+### 2018-10-20 version 7.0.3
+* Unicode special characters (accents and such) in JWT are now properly…
+
 <a name="2018-10-20"></a>
 ### 2018-10-20 version 7.0.2
 * authorizedCallback should wait until the module is setup before running. 

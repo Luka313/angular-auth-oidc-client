@@ -32,9 +32,10 @@ export class StateValidationService {
             return toReturn;
         }
 
-        if (this.authConfiguration.response_type === 'id_token token') {
+        if (this.authConfiguration.response_type === 'id_token token' || this.authConfiguration.response_type === 'code') {
             toReturn.access_token = result.access_token;
         }
+
         toReturn.id_token = result.id_token;
 
         toReturn.decoded_id_token = this.tokenHelperService.getPayloadFromToken(toReturn.id_token, false);
@@ -69,7 +70,10 @@ export class StateValidationService {
         }
 
         if (this.authWellKnownEndpoints) {
-            if (!this.oidcSecurityValidation.validate_id_token_iss(toReturn.decoded_id_token, this.authWellKnownEndpoints.issuer)) {
+            if (this.authConfiguration.iss_validation_off) {
+                this.loggerService.logDebug('iss validation is turned off, this is not recommended!');
+            } else if (!this.authConfiguration.iss_validation_off &&
+                !this.oidcSecurityValidation.validate_id_token_iss(toReturn.decoded_id_token, this.authWellKnownEndpoints.issuer)) {
                 this.loggerService.logWarning('authorizedCallback incorrect iss does not match authWellKnownEndpoints issuer');
                 toReturn.state = ValidationResult.IssDoesNotMatchIssuer;
                 return toReturn;
@@ -93,15 +97,16 @@ export class StateValidationService {
         }
 
         // flow id_token token
-        if (this.authConfiguration.response_type !== 'id_token token') {
+        if (this.authConfiguration.response_type !== 'id_token token' && this.authConfiguration.response_type !== 'code') {
             toReturn.authResponseIsValid = true;
             toReturn.state = ValidationResult.Ok;
             this.handleSuccessfulValidation();
             return toReturn;
         }
 
-        if (
-            !this.oidcSecurityValidation.validate_id_token_at_hash(toReturn.access_token, toReturn.decoded_id_token.at_hash) ||
+        if (!this.oidcSecurityValidation.validate_id_token_at_hash(toReturn.access_token,
+            toReturn.decoded_id_token.at_hash,
+            this.authConfiguration.response_type === 'code') ||
             !toReturn.access_token
         ) {
             this.loggerService.logWarning('authorizedCallback incorrect at_hash');

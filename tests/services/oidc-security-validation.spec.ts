@@ -5,20 +5,18 @@ import { RouterTestingModule } from '@angular/router/testing';
 import {
     OidcSecurityStorage,
     OpenIDImplicitFlowConfiguration,
+    AuthModule,
 } from '../../src/angular-auth-oidc-client';
-import {
-    AuthConfiguration,
-    DefaultConfiguration,
-} from '../../src/modules/auth.configuration';
+import { AuthConfiguration } from '../../src/modules/auth.configuration';
 import { EqualityHelperService } from '../../src/services/oidc-equality-helper.service';
 import { LoggerService } from '../../src/services/oidc.logger.service';
 import { OidcSecurityValidation } from '../../src/services/oidc.security.validation';
 import { TestLogging } from '../common/test-logging.service';
 import { TestStorage } from '../common/test-storage.service';
-import { AuthModule } from './../../index';
 
 describe('OidcSecurityValidation', () => {
     let oidcSecurityValidation: OidcSecurityValidation;
+    let authConfiguration: AuthConfiguration;
 
     beforeEach(() => {
         TestBed.configureTestingModule({
@@ -29,6 +27,7 @@ describe('OidcSecurityValidation', () => {
                 AuthModule.forRoot(),
             ],
             providers: [
+                AuthConfiguration,
                 EqualityHelperService,
                 OidcSecurityValidation,
                 {
@@ -45,13 +44,10 @@ describe('OidcSecurityValidation', () => {
 
     beforeEach(() => {
         oidcSecurityValidation = TestBed.get(OidcSecurityValidation);
+        authConfiguration = TestBed.get(AuthConfiguration);
     });
 
     it('validate aud string', () => {
-        const authConfiguration = new AuthConfiguration(
-            new DefaultConfiguration()
-        );
-
         let openIDImplicitFlowConfiguration = new OpenIDImplicitFlowConfiguration();
         openIDImplicitFlowConfiguration.stsServer = 'https://localhost:5001';
         openIDImplicitFlowConfiguration.redirect_url =
@@ -89,10 +85,6 @@ describe('OidcSecurityValidation', () => {
     });
 
     it('validate aud array', () => {
-        const authConfiguration = new AuthConfiguration(
-            new DefaultConfiguration()
-        );
-
         let openIDImplicitFlowConfiguration = new OpenIDImplicitFlowConfiguration();
         openIDImplicitFlowConfiguration.stsServer = 'https://localhost:5001';
         openIDImplicitFlowConfiguration.redirect_url =

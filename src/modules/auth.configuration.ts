@@ -1,6 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Inject, Injectable, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import { Observable, Subject } from 'rxjs';
 
-export class DefaultConfiguration {
+export class OpenIDImplicitFlowConfiguration {
     stsServer = 'https://localhost:44318';
     redirect_url = 'https://localhost:44311';
     // The Client MUST validate that the aud (audience) Claim contains its client_id value registered at the Issuer identified
@@ -14,7 +16,7 @@ export class DefaultConfiguration {
     hd_param = '';
     post_logout_redirect_uri = 'https://localhost:44311/unauthorized';
     start_checksession = false;
-    silent_renew = true;
+    silent_renew = false;
     silent_renew_url = 'https://localhost:44311';
     silent_renew_offset_in_seconds = 0;
     silent_redirect_url = 'https://localhost:44311';
@@ -28,6 +30,8 @@ export class DefaultConfiguration {
     trigger_authorization_result_event = false;
     log_console_warning_active = true;
     log_console_debug_active = false;
+    iss_validation_off = false;
+    history_cleanup_off = false;
 
     // id_token C8: The iat Claim can be used to reject tokens that were issued too far away from the current time,
     // limiting the amount of time that nonces need to be stored to prevent attacks.The acceptable range is Client specific.
@@ -36,35 +40,10 @@ export class DefaultConfiguration {
     storage = typeof Storage !== 'undefined' ? sessionStorage : null;
 }
 
-export class OpenIDImplicitFlowConfiguration {
-    stsServer = 'https://localhost:44318';
-    redirect_url = 'https://localhost:44311';
-    client_id = 'angularclient';
-    response_type = 'id_token token';
-    resource = '';
-    scope = 'openid email profile';
-    hd_param = '';
-    post_logout_redirect_uri = 'https://localhost:44311/unauthorized';
-    start_checksession = false;
-    silent_renew = true;
-    silent_renew_url = 'https://localhost:44311';
-    silent_renew_offset_in_seconds = 0;
-    silent_redirect_url = 'https://localhost:44311';
-    post_login_route = '/';
-    forbidden_route = '/forbidden';
-    unauthorized_route = '/unauthorized';
-    auto_userinfo = true;
-    auto_clean_state_after_authentication = true;
-    trigger_authorization_result_event = false;
-    log_console_warning_active = true;
-    log_console_debug_active = false;
-    max_id_token_iat_offset_allowed_in_seconds = 3;
-    storage: any = typeof window !== 'undefined' ? sessionStorage : null;
-}
-
 @Injectable()
 export class AuthConfiguration {
     private openIDImplicitFlowConfiguration: OpenIDImplicitFlowConfiguration | undefined;
+    private defaultConfig: OpenIDImplicitFlowConfiguration;
 
     get stsServer(): string {
         if (this.openIDImplicitFlowConfiguration) {
@@ -131,6 +110,10 @@ export class AuthConfiguration {
     }
 
     get start_checksession(): boolean {
+        if (!isPlatformBrowser(this.platformId)) {
+            return false;
+        }
+
         if (this.openIDImplicitFlowConfiguration) {
             return this.openIDImplicitFlowConfiguration.start_checksession;
         }
@@ -139,6 +122,10 @@ export class AuthConfiguration {
     }
 
     get silent_renew(): boolean {
+        if (!isPlatformBrowser(this.platformId)) {
+            return false;
+        }
+
         if (this.openIDImplicitFlowConfiguration) {
             return this.openIDImplicitFlowConfiguration.silent_renew;
         }
@@ -218,6 +205,22 @@ export class AuthConfiguration {
         return this.defaultConfig.log_console_debug_active;
     }
 
+    get iss_validation_off(): boolean {
+        if (this.openIDImplicitFlowConfiguration) {
+            return this.openIDImplicitFlowConfiguration.iss_validation_off;
+        }
+
+        return this.defaultConfig.iss_validation_off;
+    }
+
+    get history_cleanup_off(): boolean {
+        if (this.openIDImplicitFlowConfiguration) {
+            return this.openIDImplicitFlowConfiguration.history_cleanup_off;
+        }
+
+        return this.defaultConfig.history_cleanup_off;
+    }
+
     get max_id_token_iat_offset_allowed_in_seconds(): number {
         if (this.openIDImplicitFlowConfiguration) {
             return this.openIDImplicitFlowConfiguration.max_id_token_iat_offset_allowed_in_seconds;
@@ -234,9 +237,17 @@ export class AuthConfiguration {
         return this.defaultConfig.storage;
     }
 
-    constructor(private defaultConfig: DefaultConfiguration) {}
+    constructor(@Inject(PLATFORM_ID) private platformId: Object) {
+        this.defaultConfig = new OpenIDImplicitFlowConfiguration();
+    }
 
     init(openIDImplicitFlowConfiguration: OpenIDImplicitFlowConfiguration) {
         this.openIDImplicitFlowConfiguration = openIDImplicitFlowConfiguration;
+        this._onConfigurationChange.next(openIDImplicitFlowConfiguration);
+    }
+
+    private _onConfigurationChange = new Subject<OpenIDImplicitFlowConfiguration>();
+    get onConfigurationChange(): Observable<OpenIDImplicitFlowConfiguration> {
+        return this._onConfigurationChange.asObservable();
     }
 }

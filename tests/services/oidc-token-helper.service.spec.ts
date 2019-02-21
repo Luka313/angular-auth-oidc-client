@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { AuthConfiguration, DefaultConfiguration } from '../../src/angular-auth-oidc-client';
+import { AuthConfiguration } from '../../src/angular-auth-oidc-client';
 import { TokenHelperService } from '../../src/services/oidc-token-helper.service';
 import { LoggerService } from '../../src/services/oidc.logger.service';
 import { TestLogging } from '../common/test-logging.service';
@@ -12,8 +12,7 @@ describe('TokenHelperService', () => {
             providers: [
                 TokenHelperService,
                 { provide: LoggerService, useClass: TestLogging },
-                AuthConfiguration,
-                DefaultConfiguration,
+                AuthConfiguration
             ],
         });
     });
@@ -111,6 +110,25 @@ describe('TokenHelperService', () => {
             const expected = JSON.parse(`{ "text" : "Hello World 123!"}`);
             const result = tokenHelperService.getPayloadFromToken(token, false);
             expect(expected).toEqual(result);
+        });
+
+        it('returns payload if token is correct, encode is false', () => {
+            const token =
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiSm9obiBEw7PDqyJ9.wMn-1oLWnxKJolMGb7YKnlwjqusWf4xnnjABgFaDkI4';
+            const jsonString = `{ "name" : "John D\xF3\xEB" }`;
+            const expected = JSON.parse(jsonString);
+            const result = tokenHelperService.getPayloadFromToken(token, false); 
+            expect(expected).toEqual(result);
+        });
+
+        it('returns payload if token is correct, encode is false', () => {
+            const token =
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwibmFtZSI6IkpvaG4gRF83NDc377-977-9MDEiLCJhZG1pbiI6dHJ1ZSwiaWF0IjoxNTE2MjI0MjQyfQ.RqIi_sO2g592anknIvfks4p7kPy8mOcN0YZUHz-8pFw';
+            const jsonString = `{ "admin": true, "sub": "1", "iat": 1516224242 }`;
+            const expected = JSON.parse(jsonString);
+            const result = tokenHelperService.getPayloadFromToken(token, false);
+
+            expect(result).toEqual(jasmine.objectContaining(expected));
         });
 
         it('returns payload if token is correct, encode is true', () => {

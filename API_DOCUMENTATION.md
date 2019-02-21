@@ -62,6 +62,33 @@ Example of a silent_renew.html callback html file.
 
 Note: The CustomEvent does not work for older versions of IE. Add a javascript function instead of this, if required.
 
+### Code Flow with PKCE
+```html
+<!doctype html>
+<html>
+<head>
+    <base href="./">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>silent-renew</title>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+</head>
+<body>
+
+    <script>
+        window.onload = function () {
+            /* The parent window hosts the Angular application */
+            var parent = window.parent;
+            /* Send the id_token information to the oidc message handler */
+            var event = new CustomEvent('oidc-silent-renew-message', { detail: window.location });
+            parent.dispatchEvent(event);
+        };
+    </script>
+</body>
+</html>
+
+```
+### Implicit Flow
 ```html
 <!doctype html>
 <html>
@@ -105,6 +132,13 @@ default value : '/Unauthorized'
 
 Route, if the server returns a 401. This is an Angular route. HTTP 401
 
+### iss_validation_off
+
+Make it possible to turn the iss validation off per configuration. You should not turn this off!
+
+default value : 'false'
+
+
 ### auto_userinfo
 
 default value : 'true'
@@ -122,6 +156,12 @@ Logs all warnings from the module to the console. This can be viewed using F12 i
 default value : false
 
 Logs all debug messages from the module to the console. This can be viewed using F12 in Chrome of Firefox.
+
+### history_cleanup_off
+
+default value : false
+
+If this is active, the history is not cleaned up at an authorize callback. This can be used, when the application needs to preserve the history.
 
 ### max_id_token_iat_offset_allowed_in_seconds
 
@@ -160,7 +200,7 @@ Optional hd parameter for Google Auth with particular G Suite domain, see https:
 
 ## OidcSecurityService
 
-### @Output() moduleSetup: boolean
+### moduleSetup: boolean
 
 Can be used to check if the setup logic is already completed, before your component loads.
 
@@ -178,7 +218,7 @@ constructor(public oidcSecurityService: OidcSecurityService) {
 }
 ```
 
-### @Output() onModuleSetup: EventEmitter<any> = new EventEmitter<any>(true);
+### onModuleSetup: Observable<any>();
 
 _Note: This will only emit once and late subscribers will never be notified. If you want a more reliable notification see: [getIsModuleSetup()](#getismodulesetup-observable)_
 
@@ -279,7 +319,7 @@ Handle the authorize callback using the event:
 
 This is required if you need to wait for a json configuration file to load.
 
-### @Output() onCheckSessionChanged = new EventEmitter<boolean>();
+### onCheckSessionChanged = new Observable<boolean>();
 
 This event is triggered when the check session changed event is received from the server.
 
@@ -421,7 +461,7 @@ Logs off from the client application and also from the server if the endsession 
 
 handle errors from the auth module.
 
-### @Output() onAuthorizationResult: EventEmitter<AuthorizationResult>
+### onAuthorizationResult: Observable<AuthorizationResult>
 
 This event returns the result of the authorization callback.
 
@@ -438,32 +478,25 @@ import { AuthorizationState } from './auth/models/authorization-state.enum';
 Subscribe to the event:
 
 ```typescript
-this.oidcSecurityService.onAuthorizationResult.subscribe(
-	(authorizationResult: AuthorizationResult) => {
-		this.onAuthorizationResultComplete(authorizationResult);
-	});
+//...
+    this.onAuthorizationResultSubscription = this.oidcSecurityService.onAuthorizationResult.pipe(
+        tap((authorizationResult: AuthorizationResult) => {
+            console.log('Auth result received AuthorizationState:'
+                + authorizationResult.authorizationState
+                + ' validationResult:' + authorizationResult.validationResult);
+        }),
+        map((authorizationResult: AuthorizationResult) => authorizationResult.authorizationState),
+        filter((authorizationState: AuthorizationState) => authorizationState === AuthorizationState.unauthorized)
+    ).subscribe(() => {
+        this.router.navigate(['/unauthorized']);
+    });
+//...
+	
+private onAuthorizationResultSubscription: Subscription;
 
 ngOnDestroy(): void {
-	this.oidcSecurityService.onAuthorizationResult.unsubscribe();
-}
-```
-
-And use the event:
-
-```typescript
-private onAuthorizationResultComplete(authorizationResult: AuthorizationResult) {
-
-	console.log('Auth result received AuthorizationState:'
-            + authorizationResult.authorizationState
-            + ' validationResult:' + authorizationResult.validationResult);
-
-	if (authorizationResult.authorizationState === AuthorizationState.unauthorized) {
-		if (window.parent) {
-			// sent from the child iframe, for example the silent renew
-			this.router.navigate(['/unauthorized']);
-		} else {
-			window.location.href = '/unauthorized';
-		}
-	}
+    if(this.onAuthorizationResultSubscription) {
+        this.onAuthorizationResultSubscription.unsubscribe();
+    }
 }
 ```

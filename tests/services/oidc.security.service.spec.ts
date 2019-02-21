@@ -3,6 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { BrowserModule } from '@angular/platform-browser';
 import { RouterTestingModule } from '@angular/router/testing';
 import { empty } from 'rxjs';
+import { filter, skipWhile } from 'rxjs/operators';
 import { OpenIDImplicitFlowConfiguration } from '../../src/modules/auth.configuration';
 import { AuthModule } from '../../src/modules/auth.module';
 import { IFrameService } from '../../src/services/existing-iframe.service';
@@ -76,6 +77,7 @@ describe('OidcSecurityService', () => {
         oidcSecurityService.setupModule(openIDImplicitFlowConfiguration);
 
         let value = oidcSecurityService.createAuthorizeUrl(
+		    false, '', // Implicit Flow
             openIDImplicitFlowConfiguration.redirect_url,
             'nonce',
             'state',
@@ -112,6 +114,7 @@ describe('OidcSecurityService', () => {
         oidcSecurityService.authConfiguration.init(openIDImplicitFlowConfiguration);
 
         let value = oidcSecurityService.createAuthorizeUrl(
+		    false, '', // Implicit Flow
             openIDImplicitFlowConfiguration.redirect_url,
             'nonce',
             'state',
@@ -183,6 +186,7 @@ describe('OidcSecurityService', () => {
         });
 
         let value = oidcSecurityService.createAuthorizeUrl(
+		    false, '', // Implicit Flow
             openIDImplicitFlowConfiguration.redirect_url,
             'nonce',
             'state',
@@ -224,6 +228,7 @@ describe('OidcSecurityService', () => {
         });
 
         let value = oidcSecurityService.createAuthorizeUrl(
+		    false, '', // Implicit Flow
             openIDImplicitFlowConfiguration.redirect_url,
             'nonce',
             'state',
@@ -265,7 +270,7 @@ describe('OidcSecurityService', () => {
         expect(value).toEqual(expectValue);
     });
 
-    it('authorizedCallback should correctly parse hash params', () => {
+    it('authorizedImplicitFlowCallback should correctly parse hash params', () => {
         spyOn(oidcSecurityService, 'getSigningKeys').and.returnValue(empty());
 
         const resultSetter = spyOnProperty(
@@ -281,7 +286,7 @@ describe('OidcSecurityService', () => {
             state: 'testState',
         };
 
-        (oidcSecurityService as OidcSecurityService).authorizedCallback(hash);
+        (oidcSecurityService as OidcSecurityService).authorizedImplicitFlowCallback(hash);
 
         expect(resultSetter).not.toHaveBeenCalled();
 
@@ -294,7 +299,63 @@ describe('OidcSecurityService', () => {
         expectedResult['access_token'] = 'ACCESS-TOKEN==';
         expectedResult['state'] = 'test=State';
 
-        (oidcSecurityService as OidcSecurityService).authorizedCallback(hash);
+        (oidcSecurityService as OidcSecurityService).authorizedImplicitFlowCallback(hash);
         expect(resultSetter).toHaveBeenCalledWith(expectedResult);
+    });
+
+    it('logoff should call urlHandler', () => {
+        oidcSecurityService.authWellKnownEndpoints = { end_session_endpoint: 'some_endpoint' };
+
+        const logoffUrl = 'http://some_logoff_url';
+
+        spyOn(oidcSecurityService, 'createEndSessionUrl').and.returnValue(logoffUrl);
+        const redirectToSpy = spyOn(oidcSecurityService, 'redirectTo');
+
+        let hasBeenCalled = false;
+
+        (oidcSecurityService as OidcSecurityService).logoff((url: string) => {
+            expect(url).toEqual(logoffUrl);
+            hasBeenCalled = true;
+        });
+
+        expect(hasBeenCalled).toEqual(true);
+        expect(redirectToSpy).not.toHaveBeenCalled();
+    });
+
+    it('logoff should redirect', () => {
+        oidcSecurityService.authWellKnownEndpoints = { end_session_endpoint: 'some_endpoint' };
+
+        const logoffUrl = 'http://some_logoff_url';
+
+        spyOn(oidcSecurityService, 'createEndSessionUrl').and.returnValue(logoffUrl);
+        const redirectToSpy = spyOn(oidcSecurityService, 'redirectTo');
+
+        (oidcSecurityService as OidcSecurityService).logoff();
+
+        expect(redirectToSpy).toHaveBeenCalledWith(logoffUrl);
+    });
+
+    it('logoff should reset storage data before emitting an _isAuthorized change', () => {
+        oidcSecurityService.authWellKnownEndpoints = {  };
+
+        const resetStorageData = spyOn(oidcSecurityService.oidcSecurityCommon, 'resetStorageData');
+
+        let hasBeenCalled = false;
+        oidcSecurityService._isAuthorized
+            .pipe(
+                skipWhile((isAuthorized: boolean) => !isAuthorized),
+                filter((isAuthorized: boolean) => !isAuthorized)
+            )
+            .subscribe(() => {
+                expect(resetStorageData).toHaveBeenCalled();
+                hasBeenCalled = true;
+            });
+
+        expect(hasBeenCalled).toEqual(false);
+
+        oidcSecurityService._isAuthorized.next(true);
+        (oidcSecurityService as OidcSecurityService).logoff();
+
+        expect(hasBeenCalled).toEqual(true);
     });
 });
